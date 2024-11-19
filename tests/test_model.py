@@ -8,16 +8,16 @@ dtype = torch.float32
 class TestModel:
 
     def test_convmodel(self):
-        x = torch.zeros((64, 3, 32, 32), dtype=dtype)
+        x = torch.zeros((64, 12, 8, 8), dtype=torch.float32)
         params = ModelParams(
-            channel_values=[3, 12, 8],
-            num_classes=10,
-            num_layers=2,
-            kernel_size=3,
-            stride=1,
-            padding=1,
-            x_size=32
+            channel_values=[12, 32, 64],  # Start with 12 input channels, increase as features get more complex
+            num_classes=2,  # Binary classification
+            num_layers=2,  # 3 convolutional layers
+            kernel_size=3,  # Common choice for CNNs
+            stride=1,  # Preserve spatial resolution
+            padding=1,  # Maintain dimensions with 3x3 kernel
+            x_size=8  # Chess board size is 8x8
         )
         model = ConvNet(params=params)
         scores = model.forward(x)
-        assert list(scores.size()) == [64, 10]
+        assert list(scores.size()) == [64, params.num_classes]

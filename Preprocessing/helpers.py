@@ -60,7 +60,6 @@ def save_pgn_to_json(meta_data_list: list[GameMetaData], output_dir: str) -> Non
 
 def convert_png_to_tensors(input_dir: str, output_dir: str) -> None:
     """
-
     :param input_dir: directory of the pgn files
     :param output_dir: directory you want to save the tensors to
     :return: None
@@ -69,7 +68,7 @@ def convert_png_to_tensors(input_dir: str, output_dir: str) -> None:
     # collects all the files from the input directory
     files = [os.path.join(input_dir + f"/{f}") for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
 
-    # iterate trough each file. We start at one stince the first one is .DS_STORE
+    # iterate trough each file. We start at one since the first one is .DS_STORE
     for game_num, game_file in enumerate(files[1:], start=1):
         with open(game_file, 'r') as file:
             content = json.load(file)
@@ -110,3 +109,8 @@ def board_to_tensor(board):
             row, col = divmod(square, 8)
             board_tensor[row, col] = piece_map[piece.symbol()]
     return board_tensor
+
+
+def load_tensor(file_path: str):
+    loaded_tensor = torch.load(file_path)
+    return loaded_tensor
