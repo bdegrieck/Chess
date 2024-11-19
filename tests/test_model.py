@@ -7,7 +7,7 @@ dtype = torch.float32
 
 class TestModel:
 
-    def test_ThreeLayerConvNet(self):
+    def test_convmodel(self):
         x = torch.zeros((64, 3, 32, 32), dtype=dtype)
         params = ModelParams(
             channel_values=[3, 12, 8],
