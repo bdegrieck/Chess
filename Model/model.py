@@ -43,7 +43,6 @@ class ConvNet(nn.Module):
         for conv in self.convs:
             x = self.relu(conv(x))
             x = nn.functional.max_pool2d(x, kernel_size=2)
-            print(f"Shape after conv and pool: {x.shape}")
         x = torch.flatten(x, start_dim=1)
         scores = self.fc(x)
         return scores

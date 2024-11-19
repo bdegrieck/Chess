@@ -20,5 +20,4 @@ class TestModel:
         )
         model = ConvNet(params=params)
         scores = model.forward(x)
-        print(scores.size())  
         assert list(scores.size()) == [64, 10]
