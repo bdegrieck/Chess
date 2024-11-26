@@ -4,9 +4,20 @@ import torch
 from pydantic.v1 import BaseModel
 
 piece_map = {
-    'P': 1, 'N': 2, 'B': 3, 'R': 4, 'Q': 5, 'K': 6,  # White pieces
-    'p': -1, 'n': -2, 'b': -3, 'r': -4, 'q': -5, 'k': -6,  # Black pieces
+    'P': 0,   # White Pawn
+    'N': 1,   # White Knight
+    'B': 2,   # White Bishop
+    'R': 3,   # White Rook
+    'Q': 4,   # White Queen
+    'K': 5,   # White King
+    'p': 6,   # Black Pawn
+    'n': 7,   # Black Knight
+    'b': 8,   # Black Bishop
+    'r': 9,   # Black Rook
+    'q': 10,  # Black Queen
+    'k': 11   # Black King
 }
+
 
 class GameMetaData(BaseModel):
     """

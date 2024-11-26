@@ -100,17 +100,21 @@ def convert_png_to_tensors(input_dir: str, output_dir: str) -> None:
 def board_to_tensor(board):
     """
     :param board: pychess board object that is converted to tensors for each move
-    :return: board_tensor: tensor of the baord matrix
+    :return: board_tensor: tensor of the board matrix
     """
-    board_tensor = torch.zeros(8, 8, dtype=torch.int8)  # 8x8 tensor for chess board
+    board_tensor = torch.zeros(12, 8, 8, dtype=torch.int8)  # 8x8 tensor for chess board
     for square in chess.SQUARES:
         piece = board.piece_at(square)
         if piece:
             row, col = divmod(square, 8)
-            board_tensor[row, col] = piece_map[piece.symbol()]
+            channel = piece_map[piece.symbol()]
+            board_tensor[channel, row, col] = 1
     return board_tensor
 
 
 def load_tensor(file_path: str):
+    """
+    :param file_path: file path to load tensor from
+    """
     loaded_tensor = torch.load(file_path)
     return loaded_tensor
