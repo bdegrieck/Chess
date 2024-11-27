@@ -1,3 +1,7 @@
+import torch
+
+from Model.constants import ModelParams
+from Model.model import ConvNet
 from Preprocessing.helpers import reformat_pgn, convert_png_to_tensors, load_tensor
 
 
@@ -16,8 +20,22 @@ def store_jan_2013_games() -> None:
 def load_jan_2013_tensor():
     tensor_path = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Janurary 2013//tensors//game_2.pt"
     tensor = load_tensor(tensor_path)
-    print(tensor)
+    return tensor
 
 
 if __name__ == "__main__":
-    load_jan_2013_tensor()
+
+    board_game = load_jan_2013_tensor()
+    params = ModelParams(
+        channel_values=[12, 32, 64],  # Input channels and convolution layers
+        num_classes=1,  # Binary classification
+        kernel_size=3,
+        stride=1,
+        padding=1,
+        x_size=8  # Chess board size is 8x8
+    )
+    model = ConvNet(params)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+

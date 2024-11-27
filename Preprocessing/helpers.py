@@ -4,8 +4,10 @@ import chess
 import torch
 import json
 import os
+import random
+from typing import Any
 
-from Preprocessing.constants import piece_map, GameMetaData, Players, BoardState
+from Preprocessing.constants import piece_map, GameMetaData, Players, BoardState, MetaDataKeys, BoardStateLabeled
 
 
 def reformat_pgn(raw_file: str, game_limit: int, output_dir: str) -> None:
@@ -118,3 +120,55 @@ def load_tensor(file_path: str):
     """
     loaded_tensor = torch.load(file_path)
     return loaded_tensor
+
+
+def create_split_dict(max_key: int):
+    """
+    Create a dictionary where keys are integers from 1 to max_key,
+    and values are split 50/50 between 0 and 1.
+
+    :param max_key: The maximum key value in the dictionary.
+    :return: A dictionary with keys as integers and values split 50/50 between 0 and 1.
+    """
+    keys = list(range(1, max_key + 1))
+
+    # Split keys randomly into two equal groups
+    random.shuffle(keys)
+    mid_point = len(keys) // 2
+    values = [0] * mid_point + [1] * (len(keys) - mid_point)
+    random.shuffle(values)
+
+    return dict(zip(keys, values))
+
+
+def corrupt_bit(board_state):
+    """
+    Corrupt the board state by flipping a random bit.
+    :param board_state: Tensor of shape (12, 8, 8) representing the board state.
+    :return: Corrupted board state.
+    """
+    corrupted_board = board_state.clone()
+    channel = random.randint(0, 11),  # Random channel
+    row = random.randint(0, 7),  # Random row
+    column = random.randint(0, 7),  # Random column
+    corrupted_board[channel, row, column] = 1 - corrupted_board[channel, row, column]  # Flip the bit (0 -> 1, 1 -> 0)
+    return corrupted_board
+
+
+def put_labels_on_boards(board_game: list[dict[str, Any]]):
+    labeled_date = []
+    label_key = create_split_dict(max_key=len(board_game))
+
+    for idx, board_state in enumerate(board_game):
+        if label_key.get(idx) == 1:
+            board_state = corrupt_bit(board_state=board_state.get(MetaDataKeys.board_state))
+
+        labeled_date.append(BoardStateLabeled(
+                player_turn=board_state.get(MetaDataKeys.player_turn),
+                turn_num=board_state.get(MetaDataKeys.turn_num),
+                board_state=board_state.get(MetaDataKeys.board_state),
+                label=label_key.get(idx)
+            )
+        )
+
+

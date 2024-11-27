@@ -50,6 +50,22 @@ class BoardState(BaseModel):
         arbitrary_types_allowed = True
 
 
+class BoardStateLabeled(BaseModel):
+    """
+    player_turn: either Black or White string
+    turn_num: number of the turn of the game
+    board_state: tensor of the board state
+    label: 0 if the board is not corrupted, 1 if the board is corrupted
+    """
+    player_turn: Literal[Players.white, Players.black]
+    turn_num: int
+    board_state: torch.Tensor
+    label: int
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
 class Directories(BaseModel):
     """
     raw_directory: Directory for the large png file
@@ -59,3 +75,9 @@ class Directories(BaseModel):
     raw_directory: str
     input_directory: str
     output_directory: str
+
+
+class MetaDataKeys:
+    player_turn = "player_turn"
+    turn_num = "turn_num"
+    board_state = "board_state"

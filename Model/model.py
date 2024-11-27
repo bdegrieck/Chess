@@ -8,13 +8,13 @@ class ConvNet(nn.Module):
 
     def __init__(self, params: ModelParams):
         super().__init__()
-        self.convs = nn.ModuleList()
         self.params = params
+        self.convs = nn.ModuleList()
 
-        in_channels = params.channel_values[0]
-        channel_vals = params.channel_values
+        channel_values = params.channel_values
+        in_channels = channel_values[0]
 
-        for out_channels in channel_vals:
+        for out_channels in channel_values:
             self.convs.append(
                 nn.Conv2d(
                     in_channels=in_channels,
@@ -26,20 +26,34 @@ class ConvNet(nn.Module):
             )
             in_channels = out_channels
 
-        conv_output_size = params.x_size
-        for _ in range(params.num_layers):
-            conv_output_size = (
-                    (conv_output_size + 2 * params.padding - params.kernel_size) // params.stride + 1
-            )
-            conv_output_size = conv_output_size // 2
-        flattened_size = channel_vals[-1] * (conv_output_size // 2) ** 2
-        self.fc = nn.Linear(flattened_size, params.num_classes)
+        self.pool = nn.MaxPool2d(kernel_size=2)
         self.relu = nn.ReLU()
+
+        # Dynamically determine flattened size
+        flattened_size = self._get_flattened_size()
+
+        self.fc = nn.Linear(flattened_size, params.num_classes)
+        self._initialize_weights()
+
+    def _get_flattened_size(self):
+        dummy_input = torch.zeros(1, self.params.channel_values[0], self.params.x_size, self.params.x_size)
+        x = dummy_input
+        for conv in self.convs:
+            x = self.pool(self.relu(conv(x)))
+        return x.numel()
+
+    def _initialize_weights(self):
+        for layer in self.convs:
+            nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
+            if layer.bias is not None:
+                nn.init.constant_(layer.bias, 0)
+        nn.init.xavier_uniform_(self.fc.weight)
+        if self.fc.bias is not None:
+            nn.init.constant_(self.fc.bias, 0)
 
     def forward(self, x):
         for conv in self.convs:
-            x = self.relu(conv(x))
-            x = nn.functional.max_pool2d(x, kernel_size=2)
+            x = self.pool(self.relu(conv(x)))
         x = torch.flatten(x, start_dim=1)
-        scores = self.fc(x)
+        scores = torch.sigmoid(self.fc(x))
         return scores
