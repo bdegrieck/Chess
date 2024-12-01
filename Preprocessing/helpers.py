@@ -1,3 +1,4 @@
+import time
 from io import StringIO
 import chess.pgn
 import chess
@@ -80,24 +81,12 @@ def convert_png_to_tensors(input_dir: str, output_dir: str) -> None:
         game = chess.pgn.read_game(moves)
         board = game.board()
 
-        board_states: list[BoardState] = []
-        move_number = 1
+        board_states: list[torch.tensor] = []
         for move in game.mainline_moves():
             board.push(move)
             tensor = board_to_tensor(board=board)
-            player = Players.black if board.turn else Players.white
-            board_states.append(BoardState(
-                player_turn=player,
-                turn_num=move_number,
-                board_state=tensor
-                )
-            )
-
-            # Only increment move number after Black's move, as one full move includes both White and Black
-            if board.turn:
-                move_number += 1
-
-        torch.save([state.dict() for state in board_states], f=f'{output_dir}/game_{game_num}.pt')
+            board_states.append(tensor)
+        torch.save([state for state in board_states], f=f'{output_dir}/game_{game_num}.pt')
 
 
 def board_to_tensor(board):
@@ -115,29 +104,22 @@ def board_to_tensor(board):
     return board_tensor
 
 
-def save_labeled_games_to_json(games: list[MetaDataLabels], output_dir: str) -> None:
+def save_labeled_games_to_json(labeled_boards: list[BoardStateLabeled], output_dir: str) -> None:
     """
-    :param games: list of labeled games
+    :param labeled_boards: list of labeled boards
     :param output_dir: directory you want to store labeled data
     :return: None
     """
-    for idx, game in enumerate(games, start=1):
+    for idx, board in enumerate(labeled_boards):
 
-        game_dict = {
-            MetaDataKeys.board_state: [{
-                MetaDataKeys.board_state: board.board_state.tolist(),
-                MetaDataKeys.label: board.label,
-                MetaDataKeys.player_turn: board.player_turn,
-                MetaDataKeys.turn_num: board.turn_num
-            } for board in game.board_states],
-            MetaDataKeys.corrupted_labels: game.corrupted_labels,
-            MetaDataKeys.non_corrupted_labels: game.non_corrupted_labels
+        labeled_board_dict = {
+            MetaDataKeys.board_state: board.board_state.tolist(),
+            MetaDataKeys.label: board.label
         }
 
-        output_file = os.path.join(output_dir, f"game_{idx}.json")
+        output_file = os.path.join(output_dir, f"board_{idx}.json")
         with open(output_file, "w") as f:
-            json.dump(game_dict, f)
-
+            json.dump(labeled_board_dict, f)
 
 
 def load_tensor(file_path: str) -> list[dict[str, Any]]:
@@ -191,36 +173,26 @@ def corrupt_board(board_state, num_flips: int = 1):
         return corrupted_board
 
 
-def put_labels_on_boards(games: list[list[dict[str, Any]]]) -> list[MetaDataLabels]:
+def put_labels_on_boards(games: list[list[torch.tensor]]) -> list[BoardStateLabeled]:
     """
     :param games: List of board games
     :return: list of labeled board games
     """
-    data = []
+    labeled_data = []
     for game in games:
-        labeled_data = []
         label_key = create_split_dict(max_key=len(game))
 
         for idx, board_state in enumerate(game, start=1):
             if label_key.get(idx) == 1:
-                board_state[MetaDataKeys.board_state] = corrupt_board(board_state=board_state.get(MetaDataKeys.board_state), num_flips=5)
+                board_state = corrupt_board(board_state=board_state, num_flips=5)
 
             labeled_data.append(BoardStateLabeled(
-                    player_turn=board_state.get(MetaDataKeys.player_turn),
-                    turn_num=board_state.get(MetaDataKeys.turn_num),
-                    board_state=board_state.get(MetaDataKeys.board_state),
+                    board_state=board_state,
                     label=label_key.get(idx)
                 )
             )
 
-        data.append(MetaDataLabels(
-            non_corrupted_labels=[idx for idx, val in label_key.items() if val == 0],
-            corrupted_labels=[idx for idx, val in label_key.items() if val == 1],
-            board_states=labeled_data
-            )
-        )
-
-    return data
+    return labeled_data
 
 def load_json_dir(dir: str) -> list:
     """
@@ -230,11 +202,11 @@ def load_json_dir(dir: str) -> list:
     files = [os.path.join(dir + f"/{f}") for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
     data = []
     for file in files:
+        if ".DS_Store" in file:
+            continue
         with open(file, "r") as f:
             data_dict = json.load(f)
-
-            for board in data_dict[MetaDataKeys.board_state]:
-                board[MetaDataKeys.board_state] = torch.tensor(board[MetaDataKeys.board_state])
+            data_dict[MetaDataKeys.board_state] = torch.tensor(data_dict[MetaDataKeys.board_state])
             data.append(data_dict)
     return data
 

@@ -69,13 +69,9 @@ class BoardState(BaseModel):
 
 class BoardStateLabeled(BaseModel):
     """
-    player_turn: either Black or White string
-    turn_num: number of the turn of the game
     board_state: tensor of the board state
     label: 0 if the board is not corrupted, 1 if the board is corrupted
     """
-    player_turn: Literal[Players.white, Players.black]
-    turn_num: int
     board_state: torch.Tensor
     label: int
 
