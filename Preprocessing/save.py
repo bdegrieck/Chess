@@ -1,5 +1,5 @@
 from Preprocessing.helpers import reformat_pgn, convert_png_to_tensors, load_tensors_from_dir, put_labels_on_boards, \
-    save_labeled_games
+    save_labeled_games_to_json
 
 
 def save_files(large_pgn_file: str, formatted_pgn_dir: str, tensor_dir: str, output_labels_dir: str,  game_limit: int) -> None:
@@ -15,5 +15,5 @@ def save_files(large_pgn_file: str, formatted_pgn_dir: str, tensor_dir: str, out
     convert_png_to_tensors(input_dir=formatted_pgn_dir, output_dir=tensor_dir)
     games = load_tensors_from_dir(input_dir=tensor_dir)
     labels = put_labels_on_boards(games=games)
-    save_labeled_games(games=labels, output_dir=output_labels_dir)
+    save_labeled_games_to_json(games=labels, output_dir=output_labels_dir)
     print("games saved")

@@ -105,7 +105,7 @@ def board_to_tensor(board):
     :param board: pychess board object that is converted to tensors for each move
     :return: board_tensor: tensor of the board matrix
     """
-    board_tensor = torch.zeros(12, 8, 8, dtype=torch.int8)  # 8x8 tensor for chess board
+    board_tensor = torch.zeros(12, 8, 8, dtype=torch.float)  # 8x8 tensor for chess board
     for square in chess.SQUARES:
         piece = board.piece_at(square)
         if piece:
@@ -115,7 +115,7 @@ def board_to_tensor(board):
     return board_tensor
 
 
-def save_labeled_games(games: list[MetaDataLabels], output_dir: str) -> None:
+def save_labeled_games_to_json(games: list[MetaDataLabels], output_dir: str) -> None:
     """
     :param games: list of labeled games
     :param output_dir: directory you want to store labeled data
@@ -222,7 +222,7 @@ def put_labels_on_boards(games: list[list[dict[str, Any]]]) -> list[MetaDataLabe
 
     return data
 
-def load_json_dir(dir: str):
+def load_json_dir(dir: str) -> list:
     """
     :param dir: directory file path
     :return: list of data
@@ -231,7 +231,11 @@ def load_json_dir(dir: str):
     data = []
     for file in files:
         with open(file, "r") as f:
-            data.append(json.load(f))
+            data_dict = json.load(f)
+
+            for board in data_dict[MetaDataKeys.board_state]:
+                board[MetaDataKeys.board_state] = torch.tensor(board[MetaDataKeys.board_state])
+            data.append(data_dict)
     return data
 
 
