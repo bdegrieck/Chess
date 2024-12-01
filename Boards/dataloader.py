@@ -3,6 +3,7 @@ from torch.utils.data import Dataset, DataLoader
 
 
 class ChessBoardDataset(Dataset):
+
     def __init__(self, board_game: list[dict[str, Any]], return_extra: bool):
         """
         Initialize the dataset with board states and labels.

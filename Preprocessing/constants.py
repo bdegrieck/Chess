@@ -1,9 +1,10 @@
-from typing import Literal
+from dataclasses import dataclass
+from typing import Literal, Any
 import torch
 
 from pydantic.v1 import BaseModel
 
-piece_map = {
+PIECE_MAP = {
     'P': 0,   # White Pawn
     'N': 1,   # White Knight
     'B': 2,   # White Bishop
@@ -17,6 +18,22 @@ piece_map = {
     'q': 10,  # Black Queen
     'k': 11   # Black King
 }
+
+PIECE_MAP_REVERSED = {
+    0: 'P',   # White Pawn
+    1: 'N',   # White Knight
+    2: 'B',   # White Bishop
+    3: 'R',   # White Rook
+    4: 'Q',   # White Queen
+    5: 'K',   # White King
+    6: 'p',   # Black Pawn
+    7: 'n',   # Black Knight
+    8: 'b',   # Black Bishop
+    9: 'r',   # Black Rook
+    10: 'q',  # Black Queen
+    11: 'k'   # Black King
+}
+
 
 
 class GameMetaData(BaseModel):
@@ -81,3 +98,14 @@ class MetaDataKeys:
     player_turn = "player_turn"
     turn_num = "turn_num"
     board_state = "board_state"
+    board_states = "board_states"
+    corrupted_labels = "corrupted_labels"
+    non_corrupted_labels = "non_corrupted_labels"
+    label = "label"
+
+
+@dataclass
+class MetaDataLabels:
+    non_corrupted_labels: list[int]
+    corrupted_labels: list[int]
+    board_states: list[BoardStateLabeled]
