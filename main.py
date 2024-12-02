@@ -1,23 +1,60 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
-
-from Model.constants import ModelParams
-from Model.model import ConvNet
-
-params = ModelParams(
-    channel_values=[12, 32, 64, 128],  # Example channel sizes for a 3-layer CNN
-    num_classes=2,                 # Number of output classes (e.g., for CIFAR-10)
-    num_layers=3,                   # Number of convolutional layers
-    kernel_size=3,                  # Size of the convolution kernel
-    stride=1,                       # Stride size for convolution
-    padding=1,                      # Padding size
-    x_size=8                       # Size of the input image (e.g., 32x32 for CIFAR-10)
-)
-
-model = ConvNet(params)
+import time
+from Model.train import train, test_model
+from Model.tuning import hyperparameter_tuning
+from Preprocessing.helpers import tensor_to_fen, load_file, save_labeled_games_to_json_parallel, process_games
+from Preprocessing.save import save_files, delete_files
 
 
+class Devices:
+    cuda = "cuda"
+    cpu = "cpu"
 
 
+def trainer():
+    dir = "C://Users//bende//Chess Games//Janurary 2013//labeled_tensors"
+    model_destination_path = "C://Users//bende//Chess//Model//Saved Models//cudatime.pth"
+    train(labeled_tensors_dir=dir, num_batches=64, device=Devices.cpu, num_epochs=5,
+          model_save_path=model_destination_path)
+
+
+def saver_test():
+    raw_pgn_file = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Test//lichess_db_standard_rated_2013-03.pgn"
+    formatted_pgn_dir = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Test//formatted_pgn"
+    tensors = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Test//tensors"
+    labeled_tensors = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Test//labeled_tensors"
+    save_files(large_pgn_file=raw_pgn_file, formatted_pgn_dir=formatted_pgn_dir, tensor_dir=tensors,
+               output_labels_dir=labeled_tensors, game_limit=1000)
+
+
+def saver_jan():
+    raw_pgn_file = "C://Users//bende//Chess Games//Janurary 2013//raw_2013_jan.pgn"
+    formatted_pgn_dir = "C://Users//bende//Chess Games//Janurary 2013//formatted_pgn"
+    tensors = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Janurary 2013//tensors"
+    labeled_tensors = "C://Users//bende//Chess Games//Janurary 2013//labeled_tensors"
+    delete_files([formatted_pgn_dir, tensors, labeled_tensors])
+    save_files(large_pgn_file=raw_pgn_file, formatted_pgn_dir=formatted_pgn_dir, tensor_dir=tensors,
+               output_labels_dir=labeled_tensors, game_limit=-1)
+
+def model_performance():
+    labeled_tensors = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Test//labeled_tensors"
+    model_path = "C://Users//bende//Chess//Model//Saved Models//jan2023.pth"
+    test_model(test_data_dir=labeled_tensors, batch_size=64, model_path=model_path, device=Devices.cuda)
+
+
+def convert_file_fen(file_path: str):
+    json = load_file(file_path)
+    fen_str = tensor_to_fen(board_state=json["board_state"])
+    print(fen_str)
+
+
+def hyperparam_tune():
+    dir = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Janurary 2013//labeled tensors"
+    model_save_path = "C://Users//bende//Chess//Model//Saved Models//model1.pth"
+    hyperparameter_tuning(labeled_tensors_dir=dir, device=Devices.cuda, model_save_path=model_save_path)
+
+
+if __name__ == "__main__":
+    output_directory = "C://Users//bende//Chess Games//Janurary 2013//labeled_tensors"
+    tensor_dir = "C://Users//bende//Chess Games//Janurary 2013//tensors"
+    labels = process_games(input_dir=tensor_dir)
+    save_labeled_games_to_json_parallel(labeled_boards=labels, output_dir=output_directory)

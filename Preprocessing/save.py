@@ -1,6 +1,6 @@
 import os
-from Preprocessing.helpers import reformat_pgn, convert_png_to_tensors, load_tensors_from_dir, put_labels_on_boards, \
-    save_labeled_games_to_json
+from Preprocessing.helpers import reformat_pgn, convert_png_to_tensors_parallel, save_labeled_games_to_json_parallel, \
+    process_games
 
 
 def save_files(large_pgn_file: str, formatted_pgn_dir: str, tensor_dir: str, output_labels_dir: str,  game_limit: int) -> None:
@@ -12,11 +12,15 @@ def save_files(large_pgn_file: str, formatted_pgn_dir: str, tensor_dir: str, out
     :param game_limit: number of games you want to extract from large pgn file
     :return: None
     """
+    print("starting saving...")
     reformat_pgn(raw_file=large_pgn_file, game_limit=game_limit, output_dir=formatted_pgn_dir)
-    convert_png_to_tensors(input_dir=formatted_pgn_dir, output_dir=tensor_dir)
-    games = load_tensors_from_dir(input_dir=tensor_dir)
-    labels = put_labels_on_boards(games=games)
-    save_labeled_games_to_json(labeled_boards=labels, output_dir=output_labels_dir)
+    print("done reformatting")
+    print("converting png to tensors..")
+    convert_png_to_tensors_parallel(input_dir=formatted_pgn_dir, output_dir=tensor_dir)
+    print("done converting png to tensors..")
+    labels = process_games(input_dir=tensor_dir)
+    print("labels on boards")
+    save_labeled_games_to_json_parallel(labeled_boards=labels, output_dir=output_labels_dir)
     print("games saved")
 
 

@@ -1,4 +1,5 @@
 import time
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from io import StringIO
 import chess.pgn
 import chess
@@ -62,31 +63,47 @@ def save_pgn_to_json(meta_data_list: list[GameMetaData], output_dir: str) -> Non
             json.dump(game_dict, f, indent=4)
 
 
-def convert_png_to_tensors(input_dir: str, output_dir: str) -> None:
+def process_game_file(game_file: str, output_dir: str, game_num: int) -> None:
     """
-    :param input_dir: directory of the pgn files
-    :param output_dir: directory you want to save the tensors to
+    Processes a single game file and saves the resulting tensors.
+    :param game_file: Path to the game file.
+    :param output_dir: Directory to save tensors.
+    :param game_num: Index of the game for naming output file.
+    """
+    with open(game_file, 'r') as file:
+        content = json.load(file)
+
+    moves = StringIO(content.get("moves"))
+    game = chess.pgn.read_game(moves)
+    board = game.board()
+
+    board_states: list[torch.tensor] = []
+    for move in game.mainline_moves():
+        board.push(move)
+        tensor = board_to_tensor(board=board)
+        board_states.append(tensor)
+
+    torch.save([state for state in board_states], f=f'{output_dir}/game_{game_num}.pt')
+
+
+def convert_png_to_tensors_parallel(input_dir: str, output_dir: str, num_workers: int = 4) -> None:
+    """
+    Converts PGN files to tensors using parallel processing.
+    :param input_dir: Directory of the PGN files.
+    :param output_dir: Directory to save the tensors.
+    :param num_workers: Number of parallel workers.
     :return: None
     """
+    # Collect all the files from the input directory
+    files = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
 
-    # collects all the files from the input directory
-    files = [os.path.join(input_dir + f"/{f}") for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
 
-    # iterate trough each file. We start at one since the first one is .DS_STORE
-    for game_num, game_file in enumerate(files[1:], start=1):
-        with open(game_file, 'r') as file:
-            content = json.load(file)
-
-        moves = StringIO(content.get("moves"))
-        game = chess.pgn.read_game(moves)
-        board = game.board()
-
-        board_states: list[torch.tensor] = []
-        for move in game.mainline_moves():
-            board.push(move)
-            tensor = board_to_tensor(board=board)
-            board_states.append(tensor)
-        torch.save([state for state in board_states], f=f'{output_dir}/game_{game_num}.pt')
+    # Start parallel processing
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        for game_num, game_file in enumerate(files, start=1):
+            executor.submit(process_game_file, game_file, output_dir, game_num)
 
 
 def board_to_tensor(board):
@@ -104,38 +121,61 @@ def board_to_tensor(board):
     return board_tensor
 
 
-def save_labeled_games_to_json(labeled_boards: list[BoardStateLabeled], output_dir: str) -> None:
+def save_single_board_to_json(board: BoardStateLabeled, output_dir: str, idx: int) -> None:
     """
-    :param labeled_boards: list of labeled boards
-    :param output_dir: directory you want to store labeled data
+    Saves a single labeled board to a JSON file.
+    :param board: Labeled board to save.
+    :param output_dir: Directory to save the JSON file.
+    :param idx: Index of the board for file naming.
+    """
+    labeled_board_dict = {
+        MetaDataKeys.board_state: board.board_state.tolist(),
+        MetaDataKeys.label: board.label
+    }
+
+    output_file = os.path.join(output_dir, f"board_{idx}.json")
+    with open(output_file, "w") as f:
+        json.dump(labeled_board_dict, f)
+
+
+def save_labeled_games_to_json_parallel(labeled_boards: list[BoardStateLabeled], output_dir: str, num_workers: int = 4) -> None:
+    """
+    Saves labeled boards to JSON files in parallel.
+    :param labeled_boards: List of labeled boards.
+    :param output_dir: Directory to save labeled data.
+    :param num_workers: Number of parallel workers.
     :return: None
     """
-    for idx, board in enumerate(labeled_boards):
+    # Ensure the output directory exists
+    os.makedirs(output_dir, exist_ok=True)
 
-        labeled_board_dict = {
-            MetaDataKeys.board_state: board.board_state.tolist(),
-            MetaDataKeys.label: board.label
-        }
+    # Start parallel processing
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        # Submit tasks to the executor
+        futures = [
+            executor.submit(save_single_board_to_json, board, output_dir, idx)
+            for idx, board in enumerate(labeled_boards)
+        ]
 
-        output_file = os.path.join(output_dir, f"board_{idx}.json")
-        with open(output_file, "w") as f:
-            json.dump(labeled_board_dict, f)
-
-
-def load_tensor(file_path: str) -> list[dict[str, Any]]:
-    """
-    :param file_path: file path to load tensor from which is a whole game of a list of board states
-    """
-    loaded_tensor = torch.load(file_path)
-    return loaded_tensor
+        # Optionally wait for all futures to complete (useful for error handling/logging)
+        for future in futures:
+            future.result()  # Raise exceptions, if an
 
 
-def load_tensors_from_dir(input_dir: str) -> list[list[dict[str, Any]]]:
-    files = [os.path.join(input_dir + f"/{f}") for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
-    games = []
-    for file in files:
-        games.append(load_tensor(file_path=file))
-    return games
+# def load_tensor(file_path: str) -> list[dict[str, Any]]:
+#     """
+#     :param file_path: file path to load tensor from which is a whole game of a list of board states
+#     """
+#     loaded_tensor = torch.load(file_path)
+#     return loaded_tensor
+#
+#
+# def load_tensors_from_dir(input_dir: str) -> list[list[dict[str, Any]]]:
+#     files = [os.path.join(input_dir + f"/{f}") for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+#     games = []
+#     for file in files:
+#         games.append(load_tensor(file_path=file))
+#     return games
 
 
 def create_split_dict(max_key: int):
@@ -165,49 +205,80 @@ def corrupt_board(board_state, num_flips: int = 1):
     :return: Corrupted board state.
     """
     corrupted_board = board_state.clone()
+    flipped_positions = set()
     for _ in range(num_flips):
-        channel = random.randint(0, 11),  # Random channel
-        row = random.randint(0, 7),  # Random row
-        column = random.randint(0, 7),  # Random column
-        corrupted_board[channel, row, column] = 1 - corrupted_board[channel, row, column]  # Flip the bit (0 -> 1, 1 -> 0)
+        channel = random.randint(0, 11)
+        row = random.randint(0, 7)
+        column = random.randint(0, 7)
+        if (channel, row, column) not in flipped_positions:
+            flipped_positions.add((channel, row, column))
+            corrupted_board[channel, row, column] = 1 - corrupted_board[channel, row, column]
         return corrupted_board
 
 
-def put_labels_on_boards(games: list[list[torch.tensor]]) -> list[BoardStateLabeled]:
+# def put_labels_on_boards(games: list[list[torch.tensor]]) -> list[BoardStateLabeled]:
+#     """
+#     :param games: List of board games
+#     :return: list of labeled board games
+#     """
+#     labeled_data = []
+#     for game in games:
+#         label_key = create_split_dict(max_key=len(game))
+#
+#         for idx, board_state in enumerate(game, start=1):
+#             if label_key.get(idx) == 1:
+#                 board_state = corrupt_board(board_state=board_state, num_flips=20)
+#
+#             labeled_data.append(BoardStateLabeled(
+#                     board_state=board_state,
+#                     label=label_key.get(idx)
+#                 )
+#             )
+#
+#     return labeled_data
+
+
+def process_games(input_dir: str) -> list[BoardStateLabeled]:
     """
-    :param games: List of board games
-    :return: list of labeled board games
+    Load tensors from a directory and label the board states in a single function.
+
+    :param input_dir: Directory containing tensor files.
+    :return: List of labeled board states.
     """
     labeled_data = []
-    for game in games:
+    files = [os.path.join(input_dir + f"/{f}") for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+
+    for file in files:
+        game = torch.load(file)
         label_key = create_split_dict(max_key=len(game))
 
         for idx, board_state in enumerate(game, start=1):
             if label_key.get(idx) == 1:
-                board_state = corrupt_board(board_state=board_state, num_flips=5)
+                board_state = corrupt_board(board_state=board_state, num_flips=20)
 
             labeled_data.append(BoardStateLabeled(
-                    board_state=board_state,
-                    label=label_key.get(idx)
-                )
-            )
+                board_state=board_state,
+                label=label_key.get(idx)
+            ))
 
     return labeled_data
 
-def load_json_dir(dir: str) -> list:
-    """
-    :param dir: directory file path
-    :return: list of data
-    """
-    files = [os.path.join(dir + f"/{f}") for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
+
+def load_file(file_path):
+    if ".DS_Store" in file_path:
+        return None
+    with open(file_path, "r") as f:
+        data_dict = json.load(f)
+        data_dict["board_state"] = torch.tensor(data_dict["board_state"])
+        return data_dict
+
+
+def load_json_dir_parallel(dir: str) -> list:
+    files = [os.path.join(dir, f) for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
     data = []
-    for file in files:
-        if ".DS_Store" in file:
-            continue
-        with open(file, "r") as f:
-            data_dict = json.load(f)
-            data_dict[MetaDataKeys.board_state] = torch.tensor(data_dict[MetaDataKeys.board_state])
-            data.append(data_dict)
+    with ThreadPoolExecutor() as executor:
+        results = executor.map(load_file, files)
+        data = [result for result in results if result is not None]
     return data
 
 
