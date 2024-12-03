@@ -44,32 +44,40 @@ def delete_files(directories: list[str]) -> None:
 
 
 def feb_2013_config(game_limit: int):
-    large_pgn_file = "/Users/bende/Chess Games/February 2013/lichess_db_standard_rated_2013-02.pgn"
-    formatted_pgn_dir = "/Users/bende/Chess Games/February 2013/formatted_pgn_files"
-    tensors_dir = "/Users/bende/Chess Games/February 2013/tensors"
-    labeled_tensors_dir = "/Users/bende/Chess Games/February 2013/labeled_tensors"
+    large_pgn_file = "C://Users//bende//Chess Games//February 2013//feb_2013_raw.pgn"
+    formatted_pgn_dir = "C://Users//bende//Chess Games//February 2013//formatted_pgn_files"
+    tensors_dir = "C://Users//bende//Chess Games//February 2013//tensors"
+    labeled_tensors_dir = "C://Users//bende//Chess Games//February 2013//labeled_tensors"
     delete_files(directories=[formatted_pgn_dir, tensors_dir, labeled_tensors_dir])
     save_files(large_pgn_file=large_pgn_file, formatted_pgn_dir=formatted_pgn_dir, tensor_dir=tensors_dir,
                output_labels_dir=labeled_tensors_dir, game_limit=game_limit)
 
 
+def march_2013_config(game_limit: int):
+    large_pgn_file = "C://Users//bende//Chess Games//March 2013//lichess_db_standard_rated_2013-03.pgn"
+    formatted_pgn_file = "C://Users//bende//Chess Games//March 2013//formatted_pgn_files"
+    tensors_dir = "C://Users//bende//Chess Games//March 2013//tensors"
+    labeled_tensors_dir = "C://Users//bende//Chess Games//March 2013//labeled_tensors"
+    delete_files([formatted_pgn_file, tensors_dir, labeled_tensors_dir])
+    save_files(large_pgn_file=large_pgn_file, formatted_pgn_dir=formatted_pgn_file, tensor_dir=tensors_dir,
+               output_labels_dir=labeled_tensors_dir, game_limit=game_limit)
 
 
 def jan_2013_config(game_limit: int):
-    large_pgn_file = "/Users/bende/Chess Games/Janurary 2013/2013_Janurary_raw_file.pgn"
-    formatted_pgn_dir = "/Users/bende/Chess Games/Janurary 2013/formatted_pgn_files"
-    tensors_dir = "/Users/bende/Chess Games/Janurary 2013/tensors"
-    labeled_tensors_dir = "/Users/bende/Chess Games/Janurary 2013/labeled tensors"
+    large_pgn_file = "C://Users//bende//Chess Games//Janurary 2013//raw_2013_jan.pgn"
+    formatted_pgn_dir = "C://Users//bende//Chess Games//Janurary 2013//labeled_tensors"
+    tensors_dir = "C://Users//bende//Chess Games//Janurary 2013//tensors"
+    labeled_tensors_dir = "C://Users//bende//Chess Games//Janurary 2013//labeled_tensors"
     delete_files([formatted_pgn_dir, tensors_dir, labeled_tensors_dir])
     save_files(large_pgn_file=large_pgn_file, formatted_pgn_dir=formatted_pgn_dir, tensor_dir=tensors_dir,
                output_labels_dir=labeled_tensors_dir, game_limit=game_limit)
 
 
 def test_config():
-    large_pgn_file = "/Users/bende/Chess Games/Test/lichess_db_standard_rated_2013-03.pgn"
-    formatted_pgn_dir = "/Users/bende/Chess Games/Test/formatted_pgn_files"
-    tensors_dir = "/Users/bende/Chess Games/Test/tensors"
-    labeled_tensors_dir = "/Users/bende/Chess Games/Test/labeled_tensors"
+    large_pgn_file = "C://Users//bende//Chess Games//Test//lichess_db_standard_rated_2013-04.pgn"
+    formatted_pgn_dir = "C://Users//bende//Chess Games//Test//formatted_pgn"
+    tensors_dir = "C://Users//bende//Chess Games//Test//tensors"
+    labeled_tensors_dir = "C://Users//bende//Chess Games//Test//labeled_tensors"
     delete_files(directories=[formatted_pgn_dir, tensors_dir, labeled_tensors_dir])
     save_files(large_pgn_file=large_pgn_file, formatted_pgn_dir=formatted_pgn_dir, tensor_dir=tensors_dir,
-               output_labels_dir=labeled_tensors_dir, game_limit=100)
+               output_labels_dir=labeled_tensors_dir, game_limit=10000)

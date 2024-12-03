@@ -170,7 +170,7 @@ def corrupt_board(board_state, num_flips: int = 1):
         if (channel, row, column) not in flipped_positions:
             flipped_positions.add((channel, row, column))
             corrupted_board[channel, row, column] = 1 - corrupted_board[channel, row, column]
-        return corrupted_board
+    return corrupted_board
 
 
 def process_games(input_dir: str) -> list[BoardStateLabeled]:
@@ -204,6 +204,7 @@ def load_file(file_path):
     if ".DS_Store" in file_path:
         return None
     with open(file_path, "r") as f:
+        print(f"file loaded: {f}")
         data_dict = json.load(f)
         data_dict["board_state"] = torch.tensor(data_dict["board_state"])
         return data_dict

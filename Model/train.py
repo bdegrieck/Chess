@@ -24,8 +24,10 @@ logging.basicConfig(
 
 def train(
         labeled_tensors_dir: str,
-        num_batches: int,
+        batch_size: int,
         device: str,
+        params: ModelParams,
+        learning_rate: float,
         num_epochs: int = 10,
         model_save_path: str = "final_model",  # Default save name
         load_model_path: str = None
@@ -35,7 +37,9 @@ def train(
 
     Args:
         labeled_tensors_dir (str): Path to directory containing labeled tensors.
-        num_batches (int): Batch size for training.
+        batch_size (int): Batch size for training.
+        params (ModelParams): parameters of the cnn model
+        learning_rate (float): learning rate of the optimizer
         device (str): Device to run training on ('cuda' or 'cpu').
         num_epochs (int): Number of training epochs. Default is 10.
         model_save_path (str): Path to save the trained model. Default is 'final_model'.
@@ -52,17 +56,8 @@ def train(
 
     print("Converting data to DataLoader...")
     board_states = ChessBoardDataset(data)
-    dataloader = DataLoader(board_states, batch_size=num_batches, shuffle=True)
+    dataloader = DataLoader(board_states, batch_size=batch_size, shuffle=True)
     print("DataLoader ready.")
-
-    params = ModelParams(
-        channel_values=[12, 64, 128],
-        num_classes=1,
-        kernel_size=3,
-        stride=1,
-        padding=1,
-        x_size=8
-    )
 
     device = torch.device(device)
     print(f"Using device: {device}")
@@ -73,7 +68,7 @@ def train(
         model.load_state_dict(torch.load(load_model_path, map_location=device))
         logging.info(f"Loaded model from {load_model_path}")
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     criterion = BCEWithLogitsLoss()
 
@@ -81,6 +76,7 @@ def train(
     epoch_losses = []
 
     for epoch in range(num_epochs):
+        print(f"epoch starting: {epoch}")
         model.train()  # Ensure model is in training mode
         epoch_loss = 0  # Reset for each epoch
 
@@ -101,6 +97,8 @@ def train(
             if batch_idx % 10 == 0:  # Log every 10 batches
                 logging.info(f"Epoch {epoch + 1}, Batch {batch_idx}: Loss = {loss.item():.4f}")
 
+        print(f"epoch done: {epoch}")
+
         # Track epoch-level loss
         epoch_losses.append(epoch_loss / len(dataloader))
         logging.info(f"Epoch {epoch + 1}/{num_epochs}, Average Loss: {epoch_loss / len(dataloader):.4f}")
@@ -112,7 +110,7 @@ def train(
         logging.info(f"Saved model checkpoint: {checkpoint_path}")
 
     total_time = time.time() - start_time
-    logging.info(f"Training completed in {total_time:.2f} seconds.")
+    print(f"Training completed in {total_time:.2f} seconds. using {device}")
 
     # Visualize training loss
     plt.figure(figsize=(10, 6))
@@ -125,7 +123,7 @@ def train(
     plt.show()
 
 
-def test_model(test_data_dir: str, model_path: str, batch_size: int, device: str):
+def test_model(test_data_dir: str, model_path: str, batch_size: int, device: str, params: ModelParams):
     # Load test data
     print("Fetching data")
     test_data = load_json_dir_parallel(dir=test_data_dir)  # Replace with your data loading function
@@ -134,16 +132,6 @@ def test_model(test_data_dir: str, model_path: str, batch_size: int, device: str
     print("Converting data to dataloader")
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     print("Data Converted")
-
-    # Define model parameters
-    params = ModelParams(
-        channel_values=[12, 32, 64],  # Must match training parameters
-        num_classes=1,
-        kernel_size=3,
-        stride=1,
-        padding=1,
-        x_size=8
-    )
 
     # Load model
     model = ConvNet(params=params).to(device)
@@ -161,7 +149,7 @@ def test_model(test_data_dir: str, model_path: str, batch_size: int, device: str
             # Forward pass
             outputs = model(inputs.float())
             predictions = torch.sigmoid(outputs).flatten()  # Sigmoid for binary classification
-            predictions = (predictions > 0.5).float()  # Threshold to binary values (0 or 1)
+            predictions = (predictions >= 0.5).float()  # Threshold to binary values (0 or 1)
 
             # Collect results
             all_predictions.extend(predictions.cpu().numpy())

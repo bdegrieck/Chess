@@ -2,6 +2,7 @@ import torch
 from torch.nn import BCEWithLogitsLoss
 from torch.utils.data import DataLoader
 from itertools import product
+import matplotlib.pyplot as plt
 
 from Boards.dataloader import ChessBoardDataset
 from Model.constants import ModelParams
@@ -72,9 +73,9 @@ def train_with_params(
 
 
 def hyperparameter_tuning(
-        labeled_tensors_dir: str,
-        device: str,
-        model_save_path: str = "final_model",
+    labeled_tensors_dir: str,
+    device: str,
+    model_save_path: str = "final_model",
 ):
     """
     Perform hyperparameter tuning for the CNN model.
@@ -85,23 +86,19 @@ def hyperparameter_tuning(
         model_save_path (str): Path to save the trained model.
 
     Returns:
-        None
+        list: Hyperparameter tuning results including combinations and final losses.
     """
     # Define hyperparameter grid
-    learning_rates = [1e-3, 1e-4, 1e-5]
-    batch_sizes = [16, 32, 64]
-    channel_configs = [
-        [12, 32, 64],  # Small model
-        [12, 64, 128],  # Medium model
-    ]
+    learning_rates = [1e-3, 1e-4]
+    batch_sizes = [16, 32]
+    channel_configs = [[12, 32], [12, 64]]
     num_epochs = 10
 
     # Generate all combinations of hyperparameters
     hyperparameter_combinations = list(product(learning_rates, batch_sizes, channel_configs))
 
-    # Iterate over each combination
-    best_loss = float('inf')
-    best_params = None
+    # Collect results for plotting
+    results = []
     for lr, batch_size, channels in hyperparameter_combinations:
         print(f"Training with: lr={lr}, batch_size={batch_size}, channels={channels}")
 
@@ -115,7 +112,7 @@ def hyperparameter_tuning(
             x_size=8
         )
 
-        # Train the model
+        # Train the model and get the final loss
         final_loss = train_with_params(
             labeled_tensors_dir=labeled_tensors_dir,
             num_batches=batch_size,
@@ -126,11 +123,46 @@ def hyperparameter_tuning(
             model_save_path=model_save_path,
         )
 
-        # Track the best parameters
-        if final_loss < best_loss:
-            best_loss = final_loss
-            best_params = (lr, batch_size, channels)
+        # Append results
+        results.append({
+            "lr": lr,
+            "batch_size": batch_size,
+            "channels": channels,
+            "final_loss": final_loss,
+        })
 
-    print(f"Best Hyperparameters: lr={best_params[0]}, batch_size={best_params[1]}, channels={best_params[2]}")
-    print(f"Best Loss: {best_loss}")
+    return results
+
+
+def plot_hyperparameter_tuning_results(results):
+    """
+    Plot training error for each hyperparameter combination.
+
+    Args:
+        results (list of dict): Each dict contains 'lr', 'batch_size', 'channels', and 'final_loss'.
+    """
+    # Extract data for plotting
+    labels = [
+        f"lr={res['lr']}, bs={res['batch_size']}, ch={res['channels']}"
+        for res in results
+    ]
+    losses = [res['final_loss'] for res in results]
+
+    # Calculate min and max loss for adjusting the x-axis scale
+    min_loss = min(losses)
+    max_loss = max(losses)
+
+    # Plotting
+    plt.figure(figsize=(12, 8))
+    plt.barh(labels, losses, color='skyblue')
+    plt.xlabel("Final Training Loss", fontsize=14)
+    plt.ylabel("Hyperparameter Combinations", fontsize=14)
+    plt.title("Training Loss for Different Hyperparameter Combinations", fontsize=16)
+
+    # Set a narrower x-axis range with some padding
+    plt.xlim(min_loss - 0.01, max_loss + 0.01)  # Adjust padding as needed
+    plt.gca().invert_yaxis()  # Invert y-axis for better readability
+    plt.grid(axis='x', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()
 
