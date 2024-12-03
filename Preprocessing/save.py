@@ -1,6 +1,6 @@
 import os
-from Preprocessing.helpers import reformat_pgn, convert_png_to_tensors_parallel, save_labeled_games_to_json_parallel, \
-    process_games
+from Preprocessing.helpers import reformat_pgn, convert_png_to_tensors_parallel, process_games, \
+    save_labeled_games_to_json
 
 
 def save_files(large_pgn_file: str, formatted_pgn_dir: str, tensor_dir: str, output_labels_dir: str,  game_limit: int) -> None:
@@ -20,7 +20,7 @@ def save_files(large_pgn_file: str, formatted_pgn_dir: str, tensor_dir: str, out
     print("done converting png to tensors..")
     labels = process_games(input_dir=tensor_dir)
     print("labels on boards")
-    save_labeled_games_to_json_parallel(labeled_boards=labels, output_dir=output_labels_dir)
+    save_labeled_games_to_json(labeled_boards=labels, output_dir=output_labels_dir)
     print("games saved")
 
 
@@ -51,6 +51,8 @@ def feb_2013_config(game_limit: int):
     delete_files(directories=[formatted_pgn_dir, tensors_dir, labeled_tensors_dir])
     save_files(large_pgn_file=large_pgn_file, formatted_pgn_dir=formatted_pgn_dir, tensor_dir=tensors_dir,
                output_labels_dir=labeled_tensors_dir, game_limit=game_limit)
+
+
 
 
 def jan_2013_config(game_limit: int):

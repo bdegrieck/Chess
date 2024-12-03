@@ -1,7 +1,8 @@
 import time
 from Model.train import train, test_model
 from Model.tuning import hyperparameter_tuning
-from Preprocessing.helpers import tensor_to_fen, load_file, save_labeled_games_to_json_parallel, process_games
+from Preprocessing.helpers import tensor_to_fen, load_file, process_games, \
+    save_labeled_games_to_json
 from Preprocessing.save import save_files, delete_files
 
 
@@ -16,24 +17,6 @@ def trainer():
     train(labeled_tensors_dir=dir, num_batches=64, device=Devices.cpu, num_epochs=5,
           model_save_path=model_destination_path)
 
-
-def saver_test():
-    raw_pgn_file = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Test//lichess_db_standard_rated_2013-03.pgn"
-    formatted_pgn_dir = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Test//formatted_pgn"
-    tensors = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Test//tensors"
-    labeled_tensors = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Test//labeled_tensors"
-    save_files(large_pgn_file=raw_pgn_file, formatted_pgn_dir=formatted_pgn_dir, tensor_dir=tensors,
-               output_labels_dir=labeled_tensors, game_limit=1000)
-
-
-def saver_jan():
-    raw_pgn_file = "C://Users//bende//Chess Games//Janurary 2013//raw_2013_jan.pgn"
-    formatted_pgn_dir = "C://Users//bende//Chess Games//Janurary 2013//formatted_pgn"
-    tensors = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Janurary 2013//tensors"
-    labeled_tensors = "C://Users//bende//Chess Games//Janurary 2013//labeled_tensors"
-    delete_files([formatted_pgn_dir, tensors, labeled_tensors])
-    save_files(large_pgn_file=raw_pgn_file, formatted_pgn_dir=formatted_pgn_dir, tensor_dir=tensors,
-               output_labels_dir=labeled_tensors, game_limit=-1)
 
 def model_performance():
     labeled_tensors = "C://Users//bende//OneDrive//OU//Parallel Computing//Chess Games//Test//labeled_tensors"
@@ -56,5 +39,7 @@ def hyperparam_tune():
 if __name__ == "__main__":
     output_directory = "C://Users//bende//Chess Games//Janurary 2013//labeled_tensors"
     tensor_dir = "C://Users//bende//Chess Games//Janurary 2013//tensors"
+    print(f"getting labels")
     labels = process_games(input_dir=tensor_dir)
-    save_labeled_games_to_json_parallel(labeled_boards=labels, output_dir=output_directory)
+    print(f"saving labels")
+    save_labeled_games_to_json(labeled_boards=labels, output_dir=output_directory)
