@@ -11,7 +11,7 @@ from Model.constants import ModelParams
 from Model.model import ConvNet
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-from Preprocessing.helpers import load_json_dir_parallel
+from Preprocessing.helpers import load_json_dir_parallel, load_json_dir_non_parallel
 
 # Logging setup
 logging.basicConfig(
@@ -49,10 +49,12 @@ def train(
         None
     """
     print("Fetching data...")
+    start = time.time()
     data = load_json_dir_parallel(dir=labeled_tensors_dir)
     if not data:
         raise ValueError("No data found. Ensure 'labeled_tensors_dir' contains valid tensors.")
     print("Data fetched.")
+    end = time.time()
 
     print("Converting data to DataLoader...")
     board_states = ChessBoardDataset(data)

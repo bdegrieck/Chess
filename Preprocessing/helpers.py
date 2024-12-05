@@ -210,6 +210,16 @@ def load_file(file_path):
         return data_dict
 
 
+def load_json_dir_non_parallel(dir: str) -> list:
+    files = [os.path.join(dir, f) for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
+    data = []
+    for file_path in files:
+        result = load_file(file_path)
+        if result is not None:
+            data.append(result)
+    return data
+
+
 def load_json_dir_parallel(dir: str) -> list:
     files = [os.path.join(dir, f) for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
     data = []
