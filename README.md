@@ -1,4 +1,8 @@
 # Chess
+
+CNN model that attempts to classify whether a chess board state is invalid or not.
+
+Setup Options:
  
 ### Option 1. Miniconda/Pycharm
 
